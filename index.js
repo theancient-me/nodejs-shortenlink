@@ -12,9 +12,9 @@ const db = mysql.createPool({
     host: '',
     user: '',
     password: '',
-    database: 'golang-shorten',
+    database: '',
     waitForConnections: true,
-    connectionLimit: 20,
+    connectionLimit: 10,
     queueLimit: 0
 });
 
@@ -24,11 +24,12 @@ app.get("/l/:refUrl", async (req, res) => {
     let refUrl = req.params.refUrl;
     const [rows, fields] = await db.execute(`SELECT full_url FROM url WHERE short_url = '${refUrl}'`);
 
-    if(rows[0].full_url != 0){
+    if (rows[0].full_url != 0) {
         await db.execute(`update url set visits = visits+1 where short_url = '${refUrl}'`)
     }
-    res.set('location', rows[0].full_url)
-    return res.send("OK")
+    let fullUrl = rows[0].full_url;
+    res.set('location', fullUrl)
+    return res.redirect(fullUrl)
 })
 
 app.post("/link", async (req, res, next) => {
@@ -49,29 +50,16 @@ app.post("/link", async (req, res, next) => {
         return result;
     }
 
-    let preRandom;
+    let preRandom = randomId(4);
 
     while (exist == true) {
-        preRandom = randomId(4);
-        try {
-             await db.execute(`SELECT short_url FROM url WHERE short_url = '${preRandom}'`).then(async ([rows]) => {
-                if (rows.length == 0) {
-                    const insert = await db.execute(`INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`).then((s) => {
-                        return true;
-                    })
-                    if (insert) {
-                        exist = false
-                    }
-                }
-            })
-
-        } catch (error) {
-            next()
+        const [findByPk] = await db.execute(`SELECT short_url FROM url WHERE short_url = '${preRandom}'`)
+        if (findByPk.length == 0) {
+            await db.execute(`INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`)
+            exist = false;
         }
+
     }
-
-
-
     return res.json({
         'link': `http://localhost:8010/l/${preRandom}`
     })
@@ -79,10 +67,16 @@ app.post("/link", async (req, res, next) => {
 })
 
 
-app.get("/l/:refUrl/stats", (req, res) => {
+app.get("/l/:refUrl/stats", async (req, res) => {
     let refUrl = req.params.refUrl;
-    db.query(`UPDATE url SET visits = visits+1 WHERE short_url = '${refUrl}'`)
-    return res.json(rows)
+    try {
+        const [rows] = await db.execute(`SELECT visits FROM url WHERE short_url = '${refUrl}'`)
+        return res.json({
+            visit: rows[0].visits
+        })
+    } catch (error) {
+        console.log(error);
+    }
 })
 
 app.use("/", (req, res) => {
