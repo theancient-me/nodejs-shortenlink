@@ -1,45 +1,49 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise')
-
+const dotenv = require('dotenv')
 const app = express();
 
+dotenv.config();
+
+// Config app name
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
 
 const db = mysql.createPool({
-    host: '',
-    user: '',
-    password: '',
-    database: '',
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USERNAME || '',
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
 
 
+app.get("/test", (req, res) => {
+    return res.send("OK")
+})
 
 app.get("/l/:refUrl", async (req, res) => {
     let refUrl = req.params.refUrl;
-    const [rows, fields] = await db.execute(`SELECT full_url FROM url WHERE short_url = '${refUrl}'`);
+    (await db).execute(`update url set visits = visits+1 where short_url = '${refUrl}'`)
+    const [rows] = await db.execute(`SELECT full_url FROM url WHERE short_url = '${refUrl}'`);
 
-    if (rows[0].full_url != 0) {
-        await db.execute(`update url set visits = visits+1 where short_url = '${refUrl}'`)
+    let fullUrl
+    try {
+        fullUrl = rows[0].full_url;
+    } catch (error) {
+        fullUrl = 'https://www.google.com'
     }
-    let fullUrl = rows[0].full_url;
     res.set('location', fullUrl)
     return res.redirect(fullUrl)
+
 })
 
 app.post("/link", async (req, res, next) => {
-    let exist = true;
     let fullUrl = req.body.url;
-
-    if (fullUrl.length == 0) {
-        return res.send("URL is not empty.")
-    }
-
     function randomId(length) {
         var result = '';
         var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -49,40 +53,35 @@ app.post("/link", async (req, res, next) => {
         }
         return result;
     }
-
     let preRandom = randomId(4);
-
-    while (exist == true) {
-        const [findByPk] = await db.execute(`SELECT short_url FROM url WHERE short_url = '${preRandom}'`)
-        if (findByPk.length == 0) {
-            await db.execute(`INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`)
-            exist = false;
-        }
-
+    try {
+        await db.execute(`INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`)
+    } catch (error) {
+        preRandom = randomId(5);
+        await db.execute(`INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`)
     }
     return res.json({
-        'link': `http://localhost:8010/l/${preRandom}`
+        'link': `http://${process.env.APP_URL}/l/${preRandom}`
     })
-
 })
 
 
 app.get("/l/:refUrl/stats", async (req, res) => {
     let refUrl = req.params.refUrl;
-    try {
-        const [rows] = await db.execute(`SELECT visits FROM url WHERE short_url = '${refUrl}'`)
-        return res.json({
-            visit: rows[0].visits
-        })
-    } catch (error) {
-        console.log(error);
-    }
+
+    const [rows] = await db.execute(`SELECT visits FROM url WHERE short_url = '${refUrl}'`)
+    return res.json({
+        visit: rows[0].visits
+    })
 })
 
 app.use("/", (req, res) => {
-    res.send("OK");
+    res.json({
+        'stutus': 200,
+        'message': 'Server runing..'
+    });
 })
 
-app.listen(8010, () => {
-    console.log('application started at port : 8010');
+app.listen(process.env.APP_PORT, () => {
+    console.log(`application started at port : ${process.env.APP_PORT}`);
 })
