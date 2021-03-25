@@ -64,6 +64,9 @@ app.post("/link", async (req, res, next) => {
       await db.execute(
         `INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`
       );
+      return res.json({
+        link: `http://${process.env.APP_URL}/l/${preRandom}`,
+      });
     } catch (error) {
       preRandom = randomId(5);
       await db.execute(
