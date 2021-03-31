@@ -17,8 +17,7 @@ const db = mysql.createPool({
   database: process.env.DB_DATABASE_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  connectTimeout: 50000
+  queueLimit: 0
 });
 
 app.get("/test", (req, res) => {
@@ -102,6 +101,7 @@ app.use("/", (req, res) => {
   });
 });
 
-app.listen(process.env.APP_PORT, () => {
+const server = app.listen(process.env.APP_PORT, () => {
   console.log(`application started at port : ${process.env.APP_PORT}`);
 });
+server.timeout = 5000;
