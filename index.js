@@ -30,7 +30,7 @@ app.get("/l/:refUrl", async (req, res) => {
     "update url set visits = visits+1 where short_url = ?", [refUrl]
   );
   const [rows] = await db.execute(
-    `SELECT full_url FROM url WHERE short_url = '${refUrl}'`
+    "SELECT full_url FROM url WHERE short_url =  ? ", [refUrl]
   );
   let fullUrl;
   try {
@@ -55,7 +55,7 @@ app.post("/link", async (req, res, next) => {
     return result;
   }
   const [rows] = await db.execute(
-    `SELECT short_url FROM url WHERE full_url = '${fullUrl}'`
+    "SELECT short_url FROM url WHERE full_url = ? ", [fullUrl]
   );
   if (rows.length == 0) {
     let preRandom = randomId(4);
@@ -87,7 +87,7 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const [rows] = await db.execute(
-    `SELECT visits FROM url WHERE short_url = '${refUrl}'`
+    "SELECT visits FROM url WHERE short_url = ? ", [refUrl]
   );
   return res.json({
     visit: rows[0].visits,
@@ -101,6 +101,8 @@ app.use("/", (req, res) => {
   });
 });
 
-app.listen(process.env.APP_PORT, () => {
+const server = app.listen(process.env.APP_PORT, () => {
   console.log(`application started at port : ${process.env.APP_PORT}`);
 });
+
+server.setTimeout(process.env.REQ_TIMEOUT);
