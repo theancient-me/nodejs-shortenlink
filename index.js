@@ -1,10 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize, DataTypes, JSON } = require('sequelize');
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const app = express();
-
+const {Mutex, Semaphore, withTimeout} = require("async-mutex")
+const mutex = new Mutex();
+const semaphore = new Semaphore(5)
 dotenv.config();
 // Config app name
 app.use(bodyParser.json());
@@ -16,9 +18,9 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    dialect: 'mysql'
-  });
+    dialect: 'mysql',
 
+  });
 
 // Model
 const shortlinkModel = sequelize.define('shortlink', {
@@ -52,22 +54,41 @@ app.get("/test", (req, res) => {
 });
 
 app.get("/l/:refUrl", async (req, res) => {
+  console.log("1")
   let refUrl = req.params.refUrl;
-  await db.execute(
-    "update url set visits = visits+1 where short_url = ?", [refUrl]
-  );
-  const [rows] = await db.execute(
-    "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
-  );
+  mutex.acquire().then(async function(release){
+    const result = await shortlinkModel.findByPk(refUrl).then(async (result)=>{
+      await result.update({
+        visits: result.visits+1
+      },{where: result.short_url});
+      return result
+    })
+    release();
+    return res.redirect(result.full_url)
+  })
+  // const result = await shortlinkModel.findByPk(refUrl).then(async (result)=>{
+  //   await result.update({
+  //     visits: result.visits+1
+  //   },{where: result.short_url});
+  //   return result
+  // })
+  // return res.redirect(result.full_url)
 
-  let fullUrl;
-  try {
-    fullUrl = rows[0].full_url;
-  } catch (error) {
-    fullUrl = "https://www.google.com";
-  }
-  res.set("location", fullUrl);
-  return res.redirect(fullUrl);
+  // await db.execute(
+  //   "update url set visits = visits+1 where short_url = ?", [refUrl]
+  // );
+  // const [rows] = await db.execute(
+  //   "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
+  // );
+
+  // let fullUrl;
+  // try {
+  //   fullUrl = rows[0].full_url;
+  // } catch (error) {
+  //   fullUrl = "https://www.google.com";
+  // }
+  // res.set("location", fullUrl);
+  // return res.redirect(fullUrl);
 });
 
 app.post("/link", async (req, res, next) => {
@@ -82,44 +103,68 @@ app.post("/link", async (req, res, next) => {
     }
     return result;
   }
-  const [rows] = await db.execute(
-    "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
-  );
-  if (rows.length == 0) {
-    let preRandom = randomId(4);
-    try {
-      await db.execute(
-        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
-      );
-      return res.json({
-        link: `http://${process.env.APP_URL}/l/${preRandom}`,
-      });
-    } catch (error) {
-      preRandom = randomId(5);
-      await db.execute(
-        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
-      );
-      return res.json({
-        link: `http://${process.env.APP_URL}/l/${preRandom}`,
-      });
+  let preRandom = randomId(4);
+  const [url, created] = await shortlinkModel.findOrCreate({
+    where: {full_url: fullUrl},
+    defaults: {
+      full_url: fullUrl,
+      short_url: preRandom
     }
-  } else {
-    let short_url = rows[0].short_url;
-    return res.json({
-      link: `http://${process.env.APP_URL}/l/${short_url}`,
-    });
-  }
+  })
+  console.log("test check value")
+  console.log(url.full_url)
+  console.log(url.short_url)
+
+  return res.json({
+    link: `http://${process.env.APP_URL}/l/${url.short_url}`,
+  })
+
+  // const [rows] = await db.execute(
+  //   "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
+  // );
+  // if (rows.length == 0) {
+  //   let preRandom = randomId(4);
+  //   try {
+  //     await db.execute(
+  //       "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
+  //     );
+  //     return res.json({
+  //       link: `http://${process.env.APP_URL}/l/${preRandom}`,
+  //     });
+  //   } catch (error) {
+  //     preRandom = randomId(5);
+  //     await db.execute(
+  //       "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
+  //     );
+  //     return res.json({
+  //       link: `http://${process.env.APP_URL}/l/${preRandom}`,
+  //     });
+  //   }
+  // } else {
+  //   let short_url = rows[0].short_url;
+  //   return res.json({
+  //     link: `http://${process.env.APP_URL}/l/${short_url}`,
+  //   });
+  // }
 });
 
 app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
-  const [rows] = await db.execute(
-    "SELECT visits FROM url WHERE short_url = ?", [refUrl]
-  );
+  const result = await shortlinkModel.findByPk(refUrl);
+  console.log('test visit')
+  console.log(result)
+
   return res.json({
-    visit: rows[0].visits,
+    visit: result.visits
   });
+
+  // const [rows] = await db.execute(
+  //   "SELECT visits FROM url WHERE short_url = ?", [refUrl]
+  // );
+  // return res.json({
+  //   visit: rows[0].visits,
+  // });
 });
 
 app.use("/", (req, res) => {
@@ -132,7 +177,7 @@ try {
   sequelize.authenticate();
 
   shortlinkModel.sync({
-    force: true
+    force: false
   })
   app.listen(process.env.APP_PORT, () => {
     console.log(`application started at port : ${process.env.APP_PORT}`);
