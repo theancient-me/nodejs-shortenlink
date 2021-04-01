@@ -27,10 +27,10 @@ app.get("/test", (req, res) => {
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
   await db.execute(
-    `update url set visits = visits+1 where short_url = '${refUrl}'`
+    "update url set visits = visits+1 where short_url = ?", [refUrl]
   );
   const [rows] = await db.execute(
-    `SELECT full_url FROM url WHERE short_url =  '${refUrl}'`
+    "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
   );
   let fullUrl;
   try {
@@ -55,13 +55,13 @@ app.post("/link", async (req, res, next) => {
     return result;
   }
   const [rows] = await db.execute(
-    `SELECT short_url FROM url WHERE full_url = '${fullUrl}'`
+    "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
   );
   if (rows.length == 0) {
     let preRandom = randomId(4);
     try {
       await db.execute(
-        `INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`
+        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
       );
       return res.json({
         link: `http://${process.env.APP_URL}/l/${preRandom}`,
@@ -69,7 +69,7 @@ app.post("/link", async (req, res, next) => {
     } catch (error) {
       preRandom = randomId(5);
       await db.execute(
-        `INSERT INTO url (full_url, short_url) VALUES ('${fullUrl}','${preRandom}')`
+        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
       );
       return res.json({
         link: `http://${process.env.APP_URL}/l/${preRandom}`,
@@ -87,7 +87,7 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const [rows] = await db.execute(
-    `SELECT visits FROM url WHERE short_url = '${refUrl}' `
+    "SELECT visits FROM url WHERE short_url = ?",[refUrl]
   );
   return res.json({
     visit: rows[0].visits,
