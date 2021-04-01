@@ -1,24 +1,51 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const { Sequelize, DataTypes } = require('sequelize');
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const app = express();
 
 dotenv.config();
-
 // Config app name
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USERNAME || "",
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+const sequelize = new Sequelize(
+  process.env.DB_DATABASE_NAME,
+  process.env.DB_USERNAME,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    dialect: 'mysql'
+  });
+
+
+// Model
+const shortlinkModel = sequelize.define('shortlink', {
+  short_url: {
+    primaryKey : true,
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  full_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  visits: {
+    type: DataTypes.INTEGER,
+    allowNull : true,
+    defaultValue : 0
+  }
 });
+// const db = mysql.createPool({
+//   host: process.env.DB_HOST || "localhost",
+//   user: process.env.DB_USERNAME || "",
+//   password: process.env.DB_PASSWORD,
+//   database: process.env.DB_DATABASE_NAME,
+//   waitForConnections: true,
+//   connectionLimit: 10,
+//   queueLimit: 0,
+// });
 
 app.get("/test", (req, res) => {
   return res.send("OK");
@@ -32,6 +59,7 @@ app.get("/l/:refUrl", async (req, res) => {
   const [rows] = await db.execute(
     "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
   );
+
   let fullUrl;
   try {
     fullUrl = rows[0].full_url;
@@ -75,11 +103,11 @@ app.post("/link", async (req, res, next) => {
         link: `http://${process.env.APP_URL}/l/${preRandom}`,
       });
     }
-  }else{
+  } else {
     let short_url = rows[0].short_url;
     return res.json({
-        link: `http://${process.env.APP_URL}/l/${short_url}`,
-      });
+      link: `http://${process.env.APP_URL}/l/${short_url}`,
+    });
   }
 });
 
@@ -87,7 +115,7 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const [rows] = await db.execute(
-    "SELECT visits FROM url WHERE short_url = ?",[refUrl]
+    "SELECT visits FROM url WHERE short_url = ?", [refUrl]
   );
   return res.json({
     visit: rows[0].visits,
@@ -100,7 +128,16 @@ app.use("/", (req, res) => {
     message: "Server runing..",
   });
 });
+try {
+  sequelize.authenticate();
 
-app.listen(process.env.APP_PORT, () => {
-  console.log(`application started at port : ${process.env.APP_PORT}`);
-});
+  shortlinkModel.sync({
+    force: true
+  })
+  app.listen(process.env.APP_PORT, () => {
+    console.log(`application started at port : ${process.env.APP_PORT}`);
+  });
+} catch (error) {
+  console.error('Unable to connect to the database:', error);
+}
+
