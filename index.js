@@ -31,7 +31,7 @@ app.get("/test", (req, res) => {
 
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
-  const [value, release] = await semaphore.acquire();
+  const release = await mutex.acquire();
   let fullUrl;
   try {
     await db.execute(
@@ -40,11 +40,11 @@ app.get("/l/:refUrl", async (req, res) => {
     const [rows] = await db.execute(
       "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
     );
+    release();
     fullUrl = rows[0].full_url;
   } catch (error) {
     fullUrl = "https://www.google.com";
   }
-  release();
   res.set("location", fullUrl);
   return res.redirect(fullUrl);
 });
