@@ -37,10 +37,10 @@ app.get("/l/:refUrl", async (req, res) => {
     await db.execute(
       "update url set visits = visits+1 where short_url = ?", [refUrl]
     );
-    release();
     const [rows] = await db.execute(
       "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
     );
+    release();
     fullUrl = rows[0].full_url;
   } catch (error) {
     fullUrl = "https://www.google.com";
