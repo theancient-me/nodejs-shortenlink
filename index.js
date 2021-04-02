@@ -3,6 +3,9 @@ const bodyParser = require("body-parser");
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const app = express();
+const Mutex = require('async-mutex').Mutex;
+
+const mutex = new Mutex();
 
 dotenv.config();
 
@@ -26,18 +29,20 @@ app.get("/test", (req, res) => {
 
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
-  await db.execute(
-    "update url set visits = visits+1 where short_url = ?", [refUrl]
-  );
-  const [rows] = await db.execute(
-    "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
-  );
+  const release = await mutex.acquire();
   let fullUrl;
   try {
+    await db.execute(
+      "update url set visits = visits+1 where short_url = ?", [refUrl]
+    );
+    const [rows] = await db.execute(
+      "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
+    );
     fullUrl = rows[0].full_url;
   } catch (error) {
     fullUrl = "https://www.google.com";
   }
+  release();
   res.set("location", fullUrl);
   return res.redirect(fullUrl);
 });
