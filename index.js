@@ -1,12 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const { Sequelize, DataTypes, JSON } = require('sequelize');
+const { Sequelize, DataTypes } = require("sequelize");
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const app = express();
-const {Mutex, Semaphore, withTimeout} = require("async-mutex")
+const { Mutex, Semaphore, withTimeout } = require("async-mutex");
 const mutex = new Mutex();
-const semaphore = new Semaphore(5)
+const semaphore = new Semaphore(5);
 dotenv.config();
 // Config app name
 app.use(bodyParser.json());
@@ -18,16 +18,22 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    dialect: 'mysql',
-
-  });
+    dialect: "mysql",
+    pool: {
+      max: 50,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  }
+);
 
 // Model
-const shortlinkModel = sequelize.define('shortlink', {
+const shortlinkModel = sequelize.define("shortlink", {
   short_url: {
-    primaryKey : true,
+    primaryKey: true,
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
   full_url: {
     type: DataTypes.STRING,
@@ -35,9 +41,9 @@ const shortlinkModel = sequelize.define('shortlink', {
   },
   visits: {
     type: DataTypes.INTEGER,
-    allowNull : true,
-    defaultValue : 0
-  }
+    allowNull: true,
+    defaultValue: 0,
+  },
 });
 // const db = mysql.createPool({
 //   host: process.env.DB_HOST || "localhost",
@@ -54,18 +60,53 @@ app.get("/test", (req, res) => {
 });
 
 app.get("/l/:refUrl", async (req, res) => {
-  console.log("1")
+  console.log("2");
   let refUrl = req.params.refUrl;
-  mutex.acquire().then(async function(release){
-    const result = await shortlinkModel.findByPk(refUrl).then(async (result)=>{
-      await result.update({
-        visits: result.visits+1
-      },{where: result.short_url});
-      return result
-    })
+  console.log(refUrl);
+  const t = await sequelize.transaction();
+  const release = await mutex.acquire();
+
+  try {
+    const result = await shortlinkModel
+      .findByPk(refUrl, { transaction: t })
+      .then(async (result) => {
+        console.log("--Before--");
+        console.log(JSON.parse(JSON.stringify(result)));
+        await result.update(
+          { visits: result.visits + 1 },
+          { where: { short_url: result.short_url } },
+          { transaction: t }
+        );
+        return result;
+      });
+    await t.commit();
+    console.log("--After--");
+    console.log(JSON.parse(JSON.stringify(result)));
+    console.log("check");
+    res.set("location", result.full_url);
+    return res.redirect(result.full_url);
+  } catch (error) {
+    await t.rollback();
+  } finally {
     release();
-    return res.redirect(result.full_url)
-  })
+  }
+
+  // const result = await shortlinkModel.findByPk(refUrl).then(async (result) => {
+  //   console.log('--before--')
+  //   console.log(JSON.parse(JSON.stringify(result)));
+  //   await result.update(
+  //     {
+  //       visits: result.visits + 1,
+  //     },
+  //     { where: result.short_url }
+  //   );
+  //   console.log("--After--")
+  //   console.log(JSON.parse(JSON.stringify(result)));
+  //   return result;
+  // });
+
+  // return res.redirect(result.full_url);
+
   // const result = await shortlinkModel.findByPk(refUrl).then(async (result)=>{
   //   await result.update({
   //     visits: result.visits+1
@@ -105,19 +146,19 @@ app.post("/link", async (req, res, next) => {
   }
   let preRandom = randomId(4);
   const [url, created] = await shortlinkModel.findOrCreate({
-    where: {full_url: fullUrl},
+    where: { full_url: fullUrl },
     defaults: {
       full_url: fullUrl,
-      short_url: preRandom
-    }
-  })
-  console.log("test check value")
-  console.log(url.full_url)
-  console.log(url.short_url)
+      short_url: preRandom,
+    },
+  });
+  console.log("test check value");
+  console.log(url.full_url);
+  console.log(url.short_url);
 
   return res.json({
     link: `http://${process.env.APP_URL}/l/${url.short_url}`,
-  })
+  });
 
   // const [rows] = await db.execute(
   //   "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
@@ -152,11 +193,11 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const result = await shortlinkModel.findByPk(refUrl);
-  console.log('test visit')
-  console.log(result)
+  console.log("test visit");
+  console.log(result);
 
   return res.json({
-    visit: result.visits
+    visit: result.visits,
   });
 
   // const [rows] = await db.execute(
@@ -177,12 +218,11 @@ try {
   sequelize.authenticate();
 
   shortlinkModel.sync({
-    force: false
-  })
+    force: false,
+  });
   app.listen(process.env.APP_PORT, () => {
     console.log(`application started at port : ${process.env.APP_PORT}`);
   });
 } catch (error) {
-  console.error('Unable to connect to the database:', error);
+  console.error("Unable to connect to the database:", error);
 }
-
