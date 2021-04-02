@@ -6,7 +6,7 @@ const dotenv = require("dotenv");
 const app = express();
 const { Mutex, Semaphore, withTimeout } = require("async-mutex");
 const mutex = new Mutex();
-const semaphore = new Semaphore(5);
+const semaphore = new Semaphore(3);
 dotenv.config();
 // Config app name
 app.use(bodyParser.json());
@@ -64,7 +64,7 @@ app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
   console.log(refUrl);
   const t = await sequelize.transaction();
-  const release = await mutex.acquire();
+  const [value, release] = await semaphore.acquire();
 
   try {
     const result = await shortlinkModel
