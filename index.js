@@ -63,33 +63,42 @@ app.get("/l/:refUrl", async (req, res) => {
   console.log("2");
   let refUrl = req.params.refUrl;
   console.log(refUrl);
-  const t = await sequelize.transaction();
-  const [value, release] = await semaphore.acquire();
-
-  try {
-    const result = await shortlinkModel
-      .findByPk(refUrl, { transaction: t })
-      .then(async (result) => {
-        console.log("--Before--");
-        console.log(JSON.parse(JSON.stringify(result)));
-        await result.update(
-          { visits: result.visits + 1 },
-          { where: { short_url: result.short_url } },
-          { transaction: t }
-        );
-        return result;
-      });
-    await t.commit();
-    console.log("--After--");
-    console.log(JSON.parse(JSON.stringify(result)));
-    console.log("check");
+  try{
+    await shortlinkModel.update({visits: sequelize.literal('visits + 1')}, {where: {short_url: refUrl}});
+    const result = await shortlinkModel.findByPk(refUrl);
     res.set("location", result.full_url);
-    return res.redirect(result.full_url);
-  } catch (error) {
-    await t.rollback();
-  } finally {
-    release();
+    return res.redirect(result.full_url)
+  }catch(err){
+    console.log(err)
   }
+
+  // const t = await sequelize.transaction();
+  // const [value, release] = await semaphore.acquire();
+
+  // try {
+  //   const result = await shortlinkModel
+  //     .findByPk(refUrl, { transaction: t })
+  //     .then(async (result) => {
+  //       console.log("--Before--");
+  //       console.log(JSON.parse(JSON.stringify(result)));
+  //       await result.update(
+  //         { visits: result.visits + 1 },
+  //         { where: { short_url: result.short_url } },
+  //         { transaction: t }
+  //       );
+  //       return result;
+  //     });
+  //   await t.commit();
+  //   console.log("--After--");
+  //   console.log(JSON.parse(JSON.stringify(result)));
+  //   console.log("check");
+  //   res.set("location", result.full_url);
+  //   return res.redirect(result.full_url);
+  // } catch (error) {
+  //   await t.rollback();
+  // } finally {
+  //   release();
+  // }
 
   // const result = await shortlinkModel.findByPk(refUrl).then(async (result) => {
   //   console.log('--before--')
