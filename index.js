@@ -4,8 +4,10 @@ const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const app = express();
 const Mutex = require('async-mutex').Mutex;
+const Semaphore = require('async-mutex').Semaphore;
 
 const mutex = new Mutex();
+const semaphore = new Semaphore(30);
 
 dotenv.config();
 
@@ -29,7 +31,7 @@ app.get("/test", (req, res) => {
 
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
-  const release = await mutex.acquire();
+  const [value, release] = await semaphore.acquire();
   let fullUrl;
   try {
     await db.execute(
