@@ -54,10 +54,10 @@ app.post("/link", async (req, res, next) => {
     }
     return result;
   }
-  const [rows] = await db.execute(
-    "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
-  );
-  if (rows.length == 0) {
+  // const [rows] = await db.execute(
+  //   "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
+  // );
+  // if (rows.length == 0) {
     let preRandom = randomId(4);
     try {
       await db.execute(
@@ -75,12 +75,12 @@ app.post("/link", async (req, res, next) => {
         link: `http://${process.env.APP_URL}/l/${preRandom}`,
       });
     }
-  }else{
-    let short_url = rows[0].short_url;
-    return res.json({
-        link: `http://${process.env.APP_URL}/l/${short_url}`,
-      });
-  }
+  // }else{
+  //   let short_url = rows[0].short_url;
+  //   return res.json({
+  //       link: `http://${process.env.APP_URL}/l/${short_url}`,
+  //     });
+  // }
 });
 
 app.get("/l/:refUrl/stats", async (req, res) => {
