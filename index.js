@@ -26,12 +26,14 @@ app.get("/test", (req, res) => {
 
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
-  await db.execute(
-    "update url set visits = visits+1 where short_url = ?", [refUrl]
-  );
-  const [rows] = await db.execute(
-    "SELECT full_url FROM url WHERE short_url =  ?", [refUrl]
-  );
+  await db.execute("update url set visits = visits+1 where short_url = ?", [
+    refUrl,
+  ]);
+  const [
+    rows,
+  ] = await db.execute("SELECT full_url FROM url WHERE short_url =  ?", [
+    refUrl,
+  ]);
   let fullUrl;
   try {
     fullUrl = rows[0].full_url;
@@ -58,23 +60,43 @@ app.post("/link", async (req, res, next) => {
   //   "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
   // );
   // if (rows.length == 0) {
-    let preRandom = randomId(4);
+  let preRandom = randomId(4);
+  preRandom = 'hBxZ'
+  try {
+    await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
+      fullUrl,
+      preRandom,
+    ]);
+    return res.json({
+      link: `http://${process.env.APP_URL}/l/${preRandom}`,
+    });
+  } catch (error) {
+    //กรณี preRandom ซ้ำกันเลยสร้างใหม่
+    console.log('check 1 ')
+    preRandom = randomId(5);
     try {
-      await db.execute(
-        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
-      );
+      await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
+        fullUrl,
+        preRandom,
+      ]);
       return res.json({
         link: `http://${process.env.APP_URL}/l/${preRandom}`,
       });
-    } catch (error) {
-      preRandom = randomId(5);
-      await db.execute(
-        "INSERT INTO url (full_url, short_url) VALUES (?, ?)", [fullUrl, preRandom]
-      );
+    } catch (err) {
+      console.log('check 2')
+      //กรณีเปลี่ยน preRandom แล้วแต่ full_url มีอยู่แล้ว
+      const [
+        rows,
+      ] = await db.execute("SELECT short_url FROM url WHERE full_url = ?", [
+        fullUrl,
+      ]);
+      let short_url = rows[0].short_url;
       return res.json({
-        link: `http://${process.env.APP_URL}/l/${preRandom}`,
+        link: `http://${process.env.APP_URL}/l/${short_url}`,
       });
     }
+  }
+
   // }else{
   //   let short_url = rows[0].short_url;
   //   return res.json({
@@ -87,7 +109,8 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const [rows] = await db.execute(
-    "SELECT visits FROM url WHERE short_url = ?",[refUrl]
+    "SELECT visits FROM url WHERE short_url = ?",
+    [refUrl]
   );
   return res.json({
     visit: rows[0].visits,
