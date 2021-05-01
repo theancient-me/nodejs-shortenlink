@@ -61,7 +61,6 @@ app.post("/link", async (req, res, next) => {
   // );
   // if (rows.length == 0) {
   let preRandom = randomId(4);
-  preRandom = 'hBxZ'
   try {
     await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
       fullUrl,
@@ -72,7 +71,6 @@ app.post("/link", async (req, res, next) => {
     });
   } catch (error) {
     //กรณี preRandom ซ้ำกันเลยสร้างใหม่
-    console.log("check 1 ");
     preRandom = randomId(10);
     try {
       await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
