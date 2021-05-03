@@ -71,7 +71,8 @@ app.post("/link", async (req, res, next) => {
     });
   } catch (error) {
     //กรณี preRandom ซ้ำกันเลยสร้างใหม่
-    preRandom = randomId(10);
+    console.log('check 1')
+    preRandom = randomId(6);
     try {
       await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
         fullUrl,
@@ -89,10 +90,16 @@ app.post("/link", async (req, res, next) => {
       ] = await db.execute("SELECT short_url FROM url WHERE full_url = ?", [
         fullUrl,
       ]);
+      if (rows.length != 0) {
         let short_url = rows[0].short_url;
         return res.json({
           link: `http://${process.env.APP_URL}/l/${short_url}`,
         });
+      }
+      return res.status(500).json({
+        status: 500,
+        message: "preRandom duplicate in database.",
+      });
     }
   }
 
