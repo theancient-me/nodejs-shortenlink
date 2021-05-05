@@ -56,10 +56,6 @@ app.post("/link", async (req, res, next) => {
     }
     return result;
   }
-  // const [rows] = await db.execute(
-  //   "SELECT short_url FROM url WHERE full_url = ?", [fullUrl]
-  // );
-  // if (rows.length == 0) {
   let preRandom = randomId(4);
   try {
     await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
@@ -102,13 +98,6 @@ app.post("/link", async (req, res, next) => {
       });
     }
   }
-
-  // }else{
-  //   let short_url = rows[0].short_url;
-  //   return res.json({
-  //       link: `http://${process.env.APP_URL}/l/${short_url}`,
-  //     });
-  // }
 });
 
 app.get("/l/:refUrl/stats", async (req, res) => {
