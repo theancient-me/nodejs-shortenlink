@@ -7,6 +7,7 @@ const app = express();
 dotenv.config();
 
 // Config app name
+app.set('view engine', 'pug')
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -19,6 +20,10 @@ const db = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+app.get('/', (req,res) => {
+  return res.render('index')
+})
 
 app.get("/test", (req, res) => {
   return res.send("OK");
