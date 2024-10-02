@@ -1,0 +1,141 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title URL Shortener
+    style.
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f3f4f6;
+        font-family: Arial, sans-serif;
+      }
+
+      .container {
+        width: 500px;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transform: scale(0.5);
+        animation: appear 0.6s ease forwards;
+      }
+
+      @keyframes appear {
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      h1 {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      label {
+        font-weight: 500;
+        color: #4b5563;
+      }
+
+      input {
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 16px;
+        outline: none;
+        transition: border 0.3s ease;
+      }
+
+      input:focus {
+        border-color: #6366f1;
+      }
+
+      button {
+        padding: 0.75rem;
+        background-color: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #4f46e5;
+      }
+
+      .shortened-url {
+        margin-top: 1.5rem;
+        text-align: center;
+        font-size: 18px;
+        color: #6366f1;
+        font-weight: 600;
+      }
+
+      a {
+        color: #6366f1;
+        text-decoration: none;
+      }
+
+  script.
+   document.addEventListener('DOMContentLoaded', () => {
+      const form = document.querySelector('form');
+      const input = document.querySelector('input');
+      const shortenedUrl = document.querySelector('.shortened-url');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = input.value;
+        const response = await fetch('/link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url }),
+        });
+        const data = await response.json();
+        shortenedUrl.innerHTML = `Your Shortened URL: <a href="${data.link}" target="_blank">${data.link}</a>`;
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.type = 'button';
+        copyBtn.classList.add('copy-btn');
+        copyBtn.style = 'background-color: #10b981; color: white; margin-top: 5px;';
+        shortenedUrl.appendChild(copyBtn);
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(data.link);
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copyBtn.textContent = 'Copy';
+          }, 2000);
+        });
+      });
+    });
+  body
+    .container
+      h1 URL Shortener
+      form(action="#", method="POST")
+        label(for="url") Enter URL
+        input(type="text", id="url", name="url", placeholder="Enter your long URL here")
+        button(type="submit") Shorten URL
+        .shortened-url
+        .copy-btn
