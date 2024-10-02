@@ -31,7 +31,7 @@ app.get("/test", (req, res) => {
 
 app.get("/l/:refUrl", async (req, res) => {
   let refUrl = req.params.refUrl;
-  await db.execute("update url set visits = visits+1 where short_url = ?", [
+  await db.execute("update urls set visits = visits+1 where short_url = ?", [
     refUrl,
   ]);
   const [rows] = await db.execute(
@@ -62,7 +62,7 @@ app.post("/link", async (req, res, next) => {
   }
   let preRandom = randomId(4);
   try {
-    await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
+    await db.execute("INSERT INTO urls (full_url, short_url) VALUES (?, ?)", [
       fullUrl,
       preRandom,
     ]);
@@ -74,7 +74,7 @@ app.post("/link", async (req, res, next) => {
     console.log("check 1");
     preRandom = randomId(6);
     try {
-      await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
+      await db.execute("INSERT INTO urls (full_url, short_url) VALUES (?, ?)", [
         fullUrl,
         preRandom,
       ]);
@@ -86,7 +86,7 @@ app.post("/link", async (req, res, next) => {
       console.log(err);
       //กรณีเปลี่ยน preRandom แล้วแต่ full_url มีอยู่แล้ว
       const [rows] = await db.execute(
-        "SELECT short_url FROM url WHERE full_url = ?",
+        "SELECT short_url FROM urls WHERE full_url = ?",
         [fullUrl]
       );
       if (rows.length != 0) {
@@ -107,7 +107,7 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   let refUrl = req.params.refUrl;
 
   const [rows] = await db.execute(
-    "SELECT visits FROM url WHERE short_url = ?",
+    "SELECT visits FROM urls WHERE short_url = ?",
     [refUrl]
   );
   return res.json({
@@ -115,12 +115,6 @@ app.get("/l/:refUrl/stats", async (req, res) => {
   });
 });
 
-app.use("/", (req, res) => {
-  res.json({
-    stutus: 200,
-    message: "Server runing..",
-  });
-});
 
 app.listen(process.env.APP_PORT, () => {
   console.log(`application started at port : ${process.env.APP_PORT}`);
