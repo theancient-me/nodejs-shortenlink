@@ -29,11 +29,10 @@ app.get("/l/:refUrl", async (req, res) => {
   await db.execute("update url set visits = visits+1 where short_url = ?", [
     refUrl,
   ]);
-  const [
-    rows,
-  ] = await db.execute("SELECT full_url FROM url WHERE short_url =  ?", [
-    refUrl,
-  ]);
+  const [rows] = await db.execute(
+    "SELECT full_url FROM url WHERE short_url =  ?",
+    [refUrl]
+  );
   let fullUrl;
   try {
     fullUrl = rows[0].full_url;
@@ -67,7 +66,7 @@ app.post("/link", async (req, res, next) => {
     });
   } catch (error) {
     //กรณี preRandom ซ้ำกันเลยสร้างใหม่
-    console.log('check 1')
+    console.log("check 1");
     preRandom = randomId(6);
     try {
       await db.execute("INSERT INTO url (full_url, short_url) VALUES (?, ?)", [
@@ -81,11 +80,10 @@ app.post("/link", async (req, res, next) => {
       console.log("check 2");
       console.log(err);
       //กรณีเปลี่ยน preRandom แล้วแต่ full_url มีอยู่แล้ว
-      const [
-        rows,
-      ] = await db.execute("SELECT short_url FROM url WHERE full_url = ?", [
-        fullUrl,
-      ]);
+      const [rows] = await db.execute(
+        "SELECT short_url FROM url WHERE full_url = ?",
+        [fullUrl]
+      );
       if (rows.length != 0) {
         let short_url = rows[0].short_url;
         return res.json({
