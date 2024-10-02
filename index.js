@@ -35,7 +35,7 @@ app.get("/l/:refUrl", async (req, res) => {
     refUrl,
   ]);
   const [rows] = await db.execute(
-    "SELECT full_url FROM url WHERE short_url =  ?",
+    "SELECT full_url FROM urls WHERE short_url =  ?",
     [refUrl]
   );
   let fullUrl;
