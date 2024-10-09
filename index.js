@@ -41,11 +41,12 @@ app.get("/l/:refUrl", async (req, res) => {
   let fullUrl;
   try {
     fullUrl = rows[0].full_url;
+    res.set("location", fullUrl);
+    return res.redirect(fullUrl);
   } catch (error) {
     fullUrl = "https://www.google.com";
+    return res.status(404).send("Not Found");
   }
-  res.set("location", fullUrl);
-  return res.redirect(fullUrl);
 });
 
 app.post("/link", async (req, res, next) => {
