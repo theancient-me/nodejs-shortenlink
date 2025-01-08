@@ -3,7 +3,8 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    title URL Shortener
+    title URL Shortener - THUTIL
+    
     style.
       * {
         margin: 0;
@@ -15,6 +16,7 @@ html(lang="en")
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-direction: column;
         min-height: 100vh;
         background-color: #f3f4f6;
         font-family: Arial, sans-serif;
@@ -97,6 +99,13 @@ html(lang="en")
         text-decoration: none;
       }
 
+      footer {
+        margin-top: 2rem;
+        text-align: center;
+        font-size: 14px;
+        color: #6b7280;
+      }
+
   script.
    document.addEventListener('DOMContentLoaded', () => {
       const form = document.querySelector('form');
@@ -131,11 +140,45 @@ html(lang="en")
       });
     });
   body
+    h1 
+      | URL Shortener | ย่อลิงก์ให้สั้น
     .container
-      h1 URL Shortener
       form(action="#", method="POST")
         label(for="url") Enter URL
         input(type="text", id="url", name="url", placeholder="Enter your long URL here")
         button(type="submit") Shorten URL
         .shortened-url
-        .copy-btn
+
+    footer
+      p(style="text-align: left;")
+        span(style="font-weight: bold")
+          | นโยบายความเป็นส่วนตัว 
+        br  
+        | 1. เว็บไซต์นี้ไม่มีการเก็บข้อมูลใด ๆ หรือเกี่ยวข้องกับ URL ที่ถูกป้อนเข้ามา เป็นเพียงเครื่องมือในการย่อลิงค์และทำการเปลี่ยนเส้นทางเท่านั้น
+        br
+        | 2. เว็บไซต์นี้ไม่มีการเก็บข้อมูล IP หรือข้อมูลส่วนตัวของผู้ใช้งานใด ๆ ทั้งสิ้น และไม่มีการใช้ข้อมูลใด ๆ ในการติดตามผู้ใช้งาน
+        br
+        | 3. URL ที่ถูกป้อนเข้ามาจะถูกเก็บไว้ในระบบเพื่อให้ผู้ใช้งานสามารถเข้าถึง URL ที่ถูกย่อลิงค์ได้ หากเป็น URL ที่ไม่ถูกต้องหรือไม่สมควร ทางผู้พัฒนาขอสงวนสิทธิ์ในการลบ URL ดังกล่าว
+        br
+        | 4. ผู้ใช้งานทุกท่านจะต้องปฏิบัติตามข้อกำหนดและเงื่อนไขข้างต้นทุกประการ และหากมีการละเมิดข้อกำหนดและเงื่อนไขข้างต้น ทางผู้พัฒนาขอสงวนสิทธิ์ในการระงับการใช้งานเว็บไซต์นี้
+        br
+      p(style="text-align: left; margin-top: 2rem;")
+        span(style="font-weight: bold")
+          | Privacy Policy
+        br
+        | 5. This website does not store any data or is associated with the URL entered. It is simply a tool for shortening links and redirecting only.
+        br
+        | 6. This website does not store IP data or any personal information of any user at all, and does not use any data to track users.
+        br
+        | 7. The URL entered will be stored in the system so that users can access the shortened URL. If it is an incorrect or inappropriate URL, the developer reserves the right to delete the URL.
+        br
+        | 8. All users must comply with the above terms and conditions in all respects, and if there is a violation of the above terms and conditions, the developer reserves the right to suspend the use of this website.
+
+      p(style="margin-top: 2rem; text-align: left;")
+        | This is an open-source URL Shortener project designed to make creating shorter, shareable links easy and efficient.
+        | You can find the source code on 
+        a(href="https://github.com/thutil/node-shorten-link", target="_blank") GitHub
+        | . Contributions are welcome!
+
+        
+
