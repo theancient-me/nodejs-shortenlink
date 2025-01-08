@@ -74,8 +74,6 @@ app.post("/link", async (req, res, next) => {
       link: `${process.env.APP_URL}/l/${preRandom}`,
     });
   } catch (error) {
-    //กรณี preRandom ซ้ำกันเลยสร้างใหม่
-    console.log("check 1");
     preRandom = randomId(6);
     try {
       await db.execute("INSERT INTO urls (full_url, short_url) VALUES (?, ?)", [
@@ -86,9 +84,6 @@ app.post("/link", async (req, res, next) => {
         link: `${process.env.APP_URL}/l/${preRandom}`,
       });
     } catch (err) {
-      console.log("check 2");
-      console.log(err);
-      //กรณีเปลี่ยน preRandom แล้วแต่ full_url มีอยู่แล้ว
       const [rows] = await db.execute(
         "SELECT short_url FROM urls WHERE full_url = ?",
         [fullUrl]
