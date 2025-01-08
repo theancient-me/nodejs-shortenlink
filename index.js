@@ -68,7 +68,7 @@ app.post("/link", async (req, res, next) => {
       preRandom,
     ]);
     return res.json({
-      link: `http://${process.env.APP_URL}/l/${preRandom}`,
+      link: `${process.env.APP_URL}/l/${preRandom}`,
     });
   } catch (error) {
     //กรณี preRandom ซ้ำกันเลยสร้างใหม่
@@ -80,7 +80,7 @@ app.post("/link", async (req, res, next) => {
         preRandom,
       ]);
       return res.json({
-        link: `http://${process.env.APP_URL}/l/${preRandom}`,
+        link: `${process.env.APP_URL}/l/${preRandom}`,
       });
     } catch (err) {
       console.log("check 2");
@@ -93,7 +93,7 @@ app.post("/link", async (req, res, next) => {
       if (rows.length != 0) {
         let short_url = rows[0].short_url;
         return res.json({
-          link: `http://${process.env.APP_URL}/l/${short_url}`,
+          link: `${process.env.APP_URL}/l/${short_url}`,
         });
       }
       return res.status(500).json({
