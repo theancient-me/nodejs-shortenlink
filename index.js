@@ -41,6 +41,9 @@ app.get("/l/:refUrl", async (req, res) => {
   let fullUrl;
   try {
     fullUrl = rows[0].full_url;
+    if (!/^https?:\/\//i.test(fullUrl)) {
+      fullUrl = 'http://' + fullUrl;
+    }
     res.set("location", fullUrl);
     return res.redirect(fullUrl);
   } catch (error) {
